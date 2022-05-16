@@ -56,8 +56,8 @@ var GF = function() {
 		this.ctx = ctx;
 
 		this.id = id;
-		this.homeX = 0;
-		this.homeY = 0;
+		this.homeX = -100;
+		this.homeY = -100;
 
 		this.draw = function () {
 			// test10
@@ -66,6 +66,7 @@ var GF = function() {
 			// Pintar ojos
 
 			this.ctx.beginPath();
+
 
 			this.ctx.moveTo(this.x, this.y + TILE_HEIGHT);
 			this.ctx.quadraticCurveTo(this.x + (TILE_WIDTH / 2), this.y / 1.05, this.x + TILE_WIDTH, this.y + TILE_HEIGHT);
@@ -100,6 +101,37 @@ var GF = function() {
 			this.nearestRow = parseInt((this.y + thisGame.TILE_HEIGHT / 2) / thisGame.TILE_HEIGHT);
 			this.nearestCol = parseInt((this.x + thisGame.TILE_WIDTH / 2) / thisGame.TILE_WIDTH);
 
+
+			if(this.state != Ghost.SPECTACLES) {
+				var posiblesMovimientos = [[0,-this.speed],[this.speed,0],[0,this.speed],[-this.speed,0]];
+				var soluciones = [];
+
+				for (var i = 0; i < posiblesMovimientos.length; i++) {
+					if(!thisLevel.checkIfHitWall(this.x+posiblesMovimientos[i][0], this.y+posiblesMovimientos[i][1],this.nearestRow,this.nearestCol))
+						soluciones.push(posiblesMovimientos[i]);
+				}
+
+				if(thisLevel.checkIfHitWall(this.x + this.velX, this.y + this.velY, this.nearestRow, this.nearestCol)|| soluciones.length == 3) {
+					var pos = Math.round(Math.random()*(soluciones.length-1));
+					this.velX = soluciones[pos][0];
+					this.velY = soluciones[pos][1];
+				} else
+					thisLevel.checkIfHitSomething(this,this.x, this.y, this.nearestRow, this.nearestCol);
+				this.x += this.velX;
+				this.y += this.velY;
+			} else {
+				if(this.x < this.homeX) this.x += this.velX;
+				if(this.x > this.homeX) this.x -= this.velX;
+				if(this.y < this.homeY) this.y += this.velY;
+				if(this.y > this.homeY) this.y -= this.velY;
+
+				if(this.x == this.homeX && this.y == this.homeY) {
+					this.state = Ghost.NORMAL;
+				}
+			}
+
+
+			/*
 			var posiblesMovimientos = [[0, -this.speed], [this.speed, 0], [0, this.speed], [-this.speed, 0]];
 			var soluciones = [];
 
@@ -117,6 +149,8 @@ var GF = function() {
 			this.x += this.velX;
 			this.y += this.velY;
 
+
+			 */
 			// test13
 			// Tu código aquí
 			// Si el estado del fantasma es Ghost.SPECTACLES
@@ -202,6 +236,38 @@ var GF = function() {
 			});
 			// test10
 			// Tu código aquí
+			this.displayGameOver = function() {
+				ctx.beginPath();
+				ctx.font = "60px Arial";
+				ctx.fillStyle = "red";
+				ctx.textAlign = "center";
+				ctx.fillText("GAME OVER",w/2,h/2);
+				ctx.closePath();
+			};
+
+			this.displayScore = function() {
+				ctx.beginPath();
+				ctx.font = "18px Arial";
+				ctx.fillStyle = "red";
+				ctx.fillText("1UP ",TILE_WIDTH,TILE_HEIGHT-5);
+				ctx.closePath();
+				ctx.beginPath();
+				ctx.beginPath();
+				ctx.fillStyle = "#fff";
+				ctx.fillText(thisGame.points,TILE_WIDTH*4,TILE_HEIGHT-5);
+				ctx.closePath();
+				ctx.fillStyle = "red";
+				ctx.fillText("HIGH SCORE",TILE_WIDTH*12,TILE_HEIGHT-5);
+				ctx.closePath();
+				ctx.beginPath();
+				ctx.fillStyle = "#fff";
+				ctx.fillText("0",TILE_WIDTH*19,TILE_HEIGHT-5);
+				ctx.closePath();
+				ctx.beginPath();
+				ctx.fillStyle = "#fff";
+				ctx.fillText("Lifes: " + thisGame.lifes,TILE_WIDTH,TILE_HEIGHT*25-5);
+				ctx.closePath();
+			};
 		};
 
 		// >=test6
@@ -251,11 +317,25 @@ var GF = function() {
 						//Pared
 						ctx.fillStyle = '#0000FF';
 						ctx.fillRect(colum * TILE_WIDTH, fila * TILE_HEIGHT, TILE_WIDTH, TILE_HEIGHT);
-					} else if (elem >= 10 && elem < 14) {
-						//Fantasmas
-						ctx.fillStyle = '#000000';
-						ctx.fillRect(colum * TILE_WIDTH, fila * TILE_HEIGHT, TILE_WIDTH, TILE_HEIGHT);
-					} else if(elem == 20 || elem == 21){
+
+					} else if(elem >=10 && elem <=13){
+						if(ghosts[0] !== undefined){
+							if (elem == 10){//Blinky (rojo)
+								ghosts[0].homeX = Math.floor(colum * thisGame.TILE_HEIGHT);
+								console.log("Fantasma x", ghosts[0].homeX)
+								ghosts[0].homeY = Math.floor(fila * thisGame.TILE_WIDTH);
+							}else if(elem == 11){//Pinky (rosa)
+								ghosts[1].homeX = Math.floor(colum * thisGame.TILE_HEIGHT);
+								ghosts[1].homeY = Math.floor(fila * thisGame.TILE_WIDTH);
+							}else if(elem == 12){//Inky  (cyan)
+								ghosts[2].homeX = Math.floor(colum * thisGame.TILE_HEIGHT);
+								ghosts[2].homeY = Math.floor(fila * thisGame.TILE_WIDTH);
+							}else if(elem == 13){//Clyde (naranja)
+								ghosts[3].homeX = Math.floor(colum * thisGame.TILE_HEIGHT);
+								ghosts[3].homeY = Math.floor(fila * thisGame.TILE_WIDTH);
+							}
+						}
+					}else if(elem == 20 || elem == 21){
 						if(elem == 20){
 							if(colum == 0){
 								this.puertaIzq = [fila, colum];
@@ -291,8 +371,6 @@ var GF = function() {
 			// Tu código aquí
 			// Determinar si el jugador va a moverse a una fila,columna que tiene pared
 			// Hacer uso de isWall
-
-
 			var numCollisions = 0;
 
 			for (var r = row - 1; r < row + 2; r++) {
@@ -308,9 +386,31 @@ var GF = function() {
 		};
 
 		// >=test11
-		this.checkIfHit = function (playerX, playerY, x, y, holgura) {
+		this.checkIfHit = function (playerX, playerY, x, y, holgura, id) {
 			// Test11
 			// Tu código aquí
+			hit = false;
+
+
+			if (pointToCoord(playerX + player.radius, playerY + player.radius)[0] == pointToCoord(x + ghosts[id].radius, y + ghosts[id].radius)[0] && pointToCoord(playerX + player.radius, playerY + player.radius)[1] == pointToCoord(x + ghosts[id].radius, y + ghosts[id].radius)[1]) {
+				if (ghosts[id].state == Ghost.NORMAL) {//Pacman muere
+
+					thisGame.setMode(thisGame.HIT_GHOST);
+					thisGame.lifes--;
+
+
+				}
+				else if (ghosts[id].state == Ghost.VULNERABLE) {//Ghost muere
+
+					ghosts[id].setGhostState(Ghost.SPECTACLES);
+					thisGame.setMode(thisGame.PACMAN_EATS);
+
+
+				}
+				hit = true;
+			}
+
+			return hit;
 		};
 
 		// >=test8
@@ -334,12 +434,28 @@ var GF = function() {
 				this.setMapTile(Math.floor((player.y + player.radius)/thisGame.TILE_WIDTH), Math.floor((player.x + player.radius)/thisGame.TILE_HEIGHT), 0);
 				this.pellets--;
 				//Cambiar a los fantasmas
-
+				for(var i = 0; i < numGhosts; i++){
+					ghosts[i].state = 2;
+				}
+				thisGame.ghostTimer = 360;
 
 			}else if(casilla == '20'){ //Puertas horizontales
-				console.log("haha")
+				if (col == thisLevel.puertaIzq[0]) {
+
+					player.x = (thisGame.screenTileSize[1] - 1) * thisGame.TILE_WIDTH - (thisGame.TILE_WIDTH / 2);
+				} else {//
+
+					console.log("Coordenada y de la puerta",thisLevel.puertaIzq[0], "col: ", col)
+					player.x = thisGame.TILE_WIDTH + (thisGame.TILE_WIDTH / 2);
+				}
 			}else if(casilla == '21'){ //Puertas verticales
-				console.log("hahant")
+				if (row == 0) {
+
+					player.y = thisGame.screenTileSize[0] * thisGame.TILE_HEIGHT - (thisGame.TILE_HEIGHT / 2);
+				} else {
+
+					//player.y = thisGame.TILE_HEIGHT + (thisGame.TILE_HEIGHT / 2);
+				}
 			}
 
 
@@ -353,18 +469,18 @@ var GF = function() {
 			// Tu código aquí
 			// Gestiona las puertas teletransportadoras
 
-				for (var r = row - 1; r < row + 2; r++) {
-					for (var c = col - 1; c < col + 2; c++) {
-						if ((Math.abs(playerX - (c * thisGame.TILE_WIDTH)) < 4) && (Math.abs(playerY - (r * thisGame.TILE_HEIGHT)) < 4)) {
-							pos = thisLevel.getMapTile(r, c);
-							if (pos == tileID.pellet) {
-								thisLevel.setMapTile(r, c, 0);
-								thisLevel.pellets--;
-								if (thisLevel.pellets == 0) console.log("Next level!");
-							}
+			for (var r = row - 1; r < row + 2; r++) {
+				for (var c = col - 1; c < col + 2; c++) {
+					if ((Math.abs(playerX - (c * thisGame.TILE_WIDTH)) < 4) && (Math.abs(playerY - (r * thisGame.TILE_HEIGHT)) < 4)) {
+						pos = thisLevel.getMapTile(r, c);
+						if (pos == tileID.pellet) {
+							thisLevel.setMapTile(r, c, 0);
+							thisLevel.pellets--;
+							if (thisLevel.pellets == 0) console.log("Next level!");
 						}
 					}
 				}
+			}
 
 			// test12
 			// Tu código aquí
@@ -374,7 +490,12 @@ var GF = function() {
 		};
 
 	}; // end Level
-
+	function coordToPoint(x, y) {
+		return [Math.floor(x * thisGame.TILE_WIDTH), Math.floor(y * thisGame.TILE_HEIGHT)];
+	}
+	function pointToCoord(x, y) {
+		return [Math.floor(x / thisGame.TILE_WIDTH), Math.floor(y / thisGame.TILE_HEIGHT)];
+	}
 // >=test2
 	var Pacman = function () {
 		this.radius = 10;
@@ -385,13 +506,7 @@ var GF = function() {
 		this.angle2 = 1.75;
 		this.homeX = 0;
 		this.homeY = 0;
-		this.sprites = [
-			new Sprite('../res/im/sprites.png', [455, 0], [16, 16], 0.005, [0, 1]),
-			new Sprite('../res/im/sprites.png', [455, 16], [16, 16], 0.005, [0, 1]),
-			new Sprite('../res/im/sprites.png', [455, 32], [16, 16], 0.005, [0, 1]),
-			new Sprite('../res/im/sprites.png', [455, 48], [16, 16], 0.005, [0, 1]),
-			new Sprite('../res/im/sprites.png', [488, 0], [16, 16], 0.005, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11])
-		];
+
 
 	};
 
@@ -415,6 +530,7 @@ var GF = function() {
 		if (!thisLevel.checkIfHitWall(this.x + this.velX, this.y + this.velY, this.nearestRow, this.nearestCol)) {
 
 			thisLevel.checkIfHitSomething(this, this.x, this.y, this.nearestRow, this.nearestCol);
+
 			this.x += this.velX;
 			this.y += this.velY;
 		} else {
@@ -422,22 +538,18 @@ var GF = function() {
 			this.velY = 0;
 		}
 
-		/*
-		if (!thisLevel.checkIfHitWall(this.x + this.velX, this.y + this.velY, this.nearestRow, this.nearestCol)) {
 
-			thisLevel.checkIfHitSomething(this, this.x, this.y, this.nearestRow, this.nearestCol);
-			this.x += this.velX;
-			this.y += this.velY;
-		} else {
-			this.velX = 0;
-			this.velY = 0;
-		}
-
-		 */
 		// test11
 		// Tu código aquí
 		// check for collisions with the ghosts
+		for (var numFant = 0; numFant < numGhosts; numFant++) {
 
+
+			if (thisLevel.checkIfHit(player.x, player.y, ghosts[numFant].x, ghosts[numFant].y, 0, numFant) == true) {
+				ghostComido = numFant;
+			}
+
+		}
 		// test13
 		// Tu código aquí
 		// Si chocamos contra un fantasma y su estado es Ghost.VULNERABLE
@@ -571,7 +683,7 @@ var GF = function() {
 		// se muestra tras el test 7
 
 		if (inputStates.left) {
-			posibleIzq = player.x-player.radius/10-player.speed;
+
 			if (!thisLevel.checkIfHitWall(player.x  - player.speed, player.y, player.nearestRow , player.nearestCol)) {
 
 
@@ -626,7 +738,39 @@ var GF = function() {
 		// test12
 		// Tu código aquí
 		// Actualizar thisGame.ghostTimer (y el estado de los fantasmas, tal y como se especifica en el enunciado)
+		var vulnerables = false
+		for (var i=0; i< numGhosts; i++) {
+			if(ghosts[i].state == Ghost.VULNERABLE) vulnerables = true;
+		}
 
+		if(vulnerables) {
+			if(thisGame.ghostTimer > 0) thisGame.ghostTimer--;
+			else {
+				for (var i=0; i< numGhosts; i++){
+					ghosts[i].state = Ghost.NORMAL;
+				}
+			}
+		}
+
+		if(thisGame.mode == thisGame.WAIT_TO_START) {
+			thisGame.modeTimer++;
+			if(thisGame.modeTimer >= 30) {
+				thisGame.setMode(thisGame.NORMAL);
+			}
+		}
+
+		if(thisGame.mode == thisGame.HIT_GHOST) {
+			thisGame.modeTimer++;
+			if(thisGame.modeTimer >= 90) {
+				thisGame.lifes--;
+				if(thisGame.lifes == 0)
+					thisGame.setMode(thisGame.GAME_OVER);
+				else {
+					thisGame.setMode(thisGame.WAIT_TO_START);
+					reset();
+				}
+			}
+		}
 		// test14
 		// Tu código aquí
 		// actualiza modeTimer...
@@ -648,19 +792,23 @@ var GF = function() {
 		// Tu código aquí
 		// sólo en modo NORMAL
 
-		// >=test4
-		checkInputs();
+		if(thisGame.mode == thisGame.GAME_OVER){
+			thisLevel.displayGameOver();
+		}else {
+			// >=test4
+			checkInputs();
 
-		// test10
-		// Tu código aquí
-		// Mover fantasmas
-		for (var i = 0; i < numGhosts; i++) {
-			ghosts[i].move();
+			// test10
+			// Tu código aquí
+			// Mover fantasmas
+			for (var i = 0; i < numGhosts; i++) {
+				ghosts[i].move();
+			}
+			;
+			// >=test3
+			//ojo: en el test3 esta instrucción es pacman.move()
+			player.move();
 		}
-		;
-		// >=test3
-		//ojo: en el test3 esta instrucción es pacman.move()
-		player.move();
 
 
 		// test14
@@ -755,6 +903,7 @@ var GF = function() {
 		// Tu código aquí
 		// Inicializa los atributos x,y, velX, velY, speed de la clase Ghost de forma conveniente
 		for (var i = 0; i < numGhosts; i++) {
+			console.log("Fantasma casaX " + i+ ": " +ghosts[i].homeX)
 			ghosts[i].x = ghosts[i].homeX;
 			ghosts[i].y = ghosts[i].homeY;
 			ghosts[i].velY = 0;
